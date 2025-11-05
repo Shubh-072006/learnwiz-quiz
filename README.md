@@ -1,73 +1,136 @@
-# Welcome to your Lovable project
+# Study Material Analyzer
 
-## Project info
+An AI-powered study tool that transforms lecture notes, slides, and textbooks into concise summaries and high-quality multiple-choice questions.
 
-**URL**: https://lovable.dev/projects/6f7f5e45-5f9d-4a8c-9140-005a79c5f3e3
+## Features
 
-## How can I edit this code?
+- 📄 **PDF Upload**: Drag-and-drop interface for easy document upload
+- 🤖 **Smart Text Extraction**: Automatic text extraction with OCR support
+- 📝 **Intelligent Summaries**: Generate concise, topic-based summaries
+- ✅ **MCQ Generation**: Create high-quality multiple-choice questions with:
+  - Difficulty levels (Easy, Medium, Hard)
+  - Detailed explanations
+  - 4 answer options per question
+- 🎯 **Interactive Quizzes**: Engaging quiz interface with instant feedback
+- 📊 **Performance Analytics**: Detailed results and performance tracking
+- 💾 **Export Options**: Download summaries and quiz results
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React, TypeScript, Vite
+- **UI Components**: shadcn/ui, Radix UI
+- **Styling**: Tailwind CSS
+- **Routing**: React Router
+- **State Management**: React Query
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6f7f5e45-5f9d-4a8c-9140-005a79c5f3e3) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 18+ and npm
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+# Clone the repository
+git clone <your-repo-url>
 
-Follow these steps:
+# Navigate to project directory
+cd study-material-analyzer
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Install dependencies
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Backend Integration
 
-**Use GitHub Codespaces**
+This frontend is designed to connect to your existing backend API. Update the API endpoints in `src/lib/api.ts`:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```typescript
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+```
 
-## What technologies are used for this project?
+### Required Backend Endpoints
 
-This project is built with:
+Your backend should implement the following endpoints:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- `POST /api/upload` - Upload PDF file
+- `GET /api/status/:documentId` - Get processing status
+- `GET /api/content/:documentId` - Get generated summaries and questions
+- `GET /api/export/:documentId` - Export results (PDF/JSON)
 
-## How can I deploy this project?
+### Environment Variables
 
-Simply open [Lovable](https://lovable.dev/projects/6f7f5e45-5f9d-4a8c-9140-005a79c5f3e3) and click on Share -> Publish.
+Create a `.env` file in the root directory:
 
-## Can I connect a custom domain to my Lovable project?
+```env
+VITE_API_URL=http://your-backend-url/api
+```
 
-Yes, you can!
+## Project Structure
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```
+src/
+├── components/
+│   └── ui/           # shadcn/ui components
+├── pages/
+│   ├── Upload.tsx    # PDF upload interface
+│   ├── Processing.tsx # Processing status
+│   ├── Summary.tsx   # Document summary view
+│   ├── Quiz.tsx      # Interactive quiz
+│   └── Results.tsx   # Quiz results & analytics
+├── lib/
+│   ├── api.ts        # API client functions
+│   └── utils.ts      # Utility functions
+└── types/
+    └── index.ts      # TypeScript type definitions
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Design System
+
+The app uses a cohesive design system with:
+- **Primary Color**: Educational blue (#0891b2)
+- **Accent Color**: Warm yellow (#f59e0b)
+- **Success**: Green (#16a34a)
+- **Warning**: Orange (#f59e0b)
+- **Semantic tokens** defined in `src/index.css`
+
+All colors use HSL format for better theming support.
+
+## Customization
+
+### Updating Mock Data
+
+Currently, the app uses mock data. To connect to your backend:
+
+1. Update API endpoints in `src/lib/api.ts`
+2. Replace mock data calls in components with API calls
+3. Update types in `src/types/index.ts` to match your API responses
+
+### Styling
+
+All styles are managed through the design system:
+- Colors: `src/index.css`
+- Tailwind config: `tailwind.config.ts`
+- Component variants: Individual component files
+
+## Deployment
+
+```bash
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+The built files will be in the `dist/` directory.
+
+## License
+
+MIT
