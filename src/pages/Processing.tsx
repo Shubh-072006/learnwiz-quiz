@@ -3,55 +3,67 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, FileText, Brain, ListChecks } from "lucide-react";
+import { api } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 const steps = [
-  { icon: FileText, label: "Extracting text", duration: 2000 },
-  { icon: Brain, label: "Generating summaries", duration: 3000 },
-  { icon: ListChecks, label: "Creating MCQs", duration: 2500 },
+  { icon: FileText, label: "Processing document", duration: 1000 },
+  { icon: Brain, label: "Generating summary", duration: 3000 },
+  { icon: ListChecks, label: "Creating quiz questions", duration: 3000 },
 ];
 
 export default function Processing() {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
-    let stepTimer: NodeJS.Timeout;
-    let progressTimer: NodeJS.Timeout;
+    const processDocument = async () => {
+      try {
+        const extractedText = sessionStorage.getItem("extractedText");
+        if (!extractedText) {
+          toast({
+            title: "Error",
+            description: "No document found. Please upload a file.",
+            variant: "destructive",
+          });
+          navigate("/");
+          return;
+        }
 
-    const startNextStep = (stepIndex: number) => {
-      if (stepIndex >= steps.length) {
+        // Step 1: Start processing
+        setProgress(10);
+        setCurrentStep(0);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Step 2: Generate summary
+        setCurrentStep(1);
+        setProgress(30);
+        const summaryResult = await api.generateSummary(extractedText);
+        sessionStorage.setItem("generatedSummary", JSON.stringify(summaryResult));
+        setProgress(60);
+
+        // Step 3: Generate quiz
+        setCurrentStep(2);
+        const quizResult = await api.generateQuiz(extractedText);
+        sessionStorage.setItem("generatedQuiz", JSON.stringify(quizResult));
+        setProgress(100);
+
+        // Navigate to summary
         setTimeout(() => navigate("/summary"), 500);
-        return;
-      }
-
-      const step = steps[stepIndex];
-      const progressIncrement = 100 / (step.duration / 50);
-
-      progressTimer = setInterval(() => {
-        setProgress((prev) => {
-          const next = prev + progressIncrement;
-          if (next >= (stepIndex + 1) * (100 / steps.length)) {
-            clearInterval(progressTimer);
-            return (stepIndex + 1) * (100 / steps.length);
-          }
-          return next;
+      } catch (error) {
+        toast({
+          title: "Processing failed",
+          description: error instanceof Error ? error.message : "Please try again",
+          variant: "destructive",
         });
-      }, 50);
-
-      stepTimer = setTimeout(() => {
-        setCurrentStep(stepIndex + 1);
-        startNextStep(stepIndex + 1);
-      }, step.duration);
+        setTimeout(() => navigate("/"), 2000);
+      }
     };
 
-    startNextStep(0);
-
-    return () => {
-      clearTimeout(stepTimer);
-      clearInterval(progressTimer);
-    };
-  }, [navigate]);
+    processDocument();
+  }, [navigate, toast]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">

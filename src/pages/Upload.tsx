@@ -51,12 +51,17 @@ export default function Upload() {
 
     setUploading(true);
     try {
-      // TODO: Replace with actual API endpoint
-      const formData = new FormData();
-      formData.append("file", file);
+      // Extract text from PDF
+      const { extractTextFromPDF } = await import("@/lib/pdfExtractor");
+      const extractedText = await extractTextFromPDF(file);
+      
+      if (!extractedText || extractedText.length < 50) {
+        throw new Error("Could not extract enough text from PDF");
+      }
 
-      // Simulating API call - replace with actual endpoint
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Store extracted text for processing page
+      sessionStorage.setItem("extractedText", extractedText);
+      sessionStorage.setItem("documentTitle", file.name.replace(".pdf", ""));
 
       toast({
         title: "Upload successful!",
@@ -67,7 +72,7 @@ export default function Upload() {
     } catch (error) {
       toast({
         title: "Upload failed",
-        description: "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {

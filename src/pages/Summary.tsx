@@ -1,42 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronDown, ChevronUp, PlayCircle, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-// Mock data - replace with actual API data
-const mockSummary = {
-  title: "Introduction to Machine Learning",
-  sections: [
-    {
-      id: 1,
-      title: "Supervised Learning",
-      content:
-        "Supervised learning is a type of machine learning where the model learns from labeled data. The algorithm learns to map inputs to outputs based on example input-output pairs. Common applications include classification and regression tasks.",
-      keywords: ["Classification", "Regression", "Labeled Data"],
-    },
-    {
-      id: 2,
-      title: "Neural Networks",
-      content:
-        "Neural networks are computing systems inspired by biological neural networks. They consist of interconnected nodes (neurons) organized in layers. Deep learning uses neural networks with multiple hidden layers to learn complex patterns.",
-      keywords: ["Deep Learning", "Neurons", "Layers"],
-    },
-    {
-      id: 3,
-      title: "Model Evaluation",
-      content:
-        "Model evaluation involves assessing the performance of machine learning models using metrics like accuracy, precision, recall, and F1-score. Cross-validation helps ensure the model generalizes well to unseen data.",
-      keywords: ["Accuracy", "Precision", "Cross-validation"],
-    },
-  ],
-  totalQuestions: 15,
-};
+import { useToast } from "@/hooks/use-toast";
 
 export default function Summary() {
-  const [expandedSections, setExpandedSections] = useState<number[]>([1]);
+  const [expandedSections, setExpandedSections] = useState<number[]>([0]);
+  const [summary, setSummary] = useState<any>(null);
+  const [quizQuestions, setQuizQuestions] = useState<any>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const summaryData = sessionStorage.getItem("generatedSummary");
+    const quizData = sessionStorage.getItem("generatedQuiz");
+    const docTitle = sessionStorage.getItem("documentTitle");
+
+    if (!summaryData || !quizData) {
+      toast({
+        title: "No data found",
+        description: "Please upload a document first.",
+        variant: "destructive",
+      });
+      navigate("/");
+      return;
+    }
+
+    try {
+      const parsedSummary = JSON.parse(summaryData);
+      const parsedQuiz = JSON.parse(quizData);
+      
+      setSummary({
+        title: docTitle || "Document Summary",
+        content: parsedSummary.summary || parsedSummary,
+        sections: typeof parsedSummary.summary === 'string' 
+          ? [{ id: 0, title: "Summary", content: parsedSummary.summary, keywords: [] }]
+          : parsedSummary.sections || [{ id: 0, title: "Summary", content: JSON.stringify(parsedSummary), keywords: [] }]
+      });
+      
+      setQuizQuestions(parsedQuiz.quiz || parsedQuiz);
+    } catch (error) {
+      toast({
+        title: "Error loading data",
+        description: "Failed to parse generated content.",
+        variant: "destructive",
+      });
+      navigate("/");
+    }
+  }, [navigate, toast]);
 
   const toggleSection = (id: number) => {
     setExpandedSections((prev) =>
@@ -44,21 +57,30 @@ export default function Summary() {
     );
   };
 
+  if (!summary) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading summary...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const totalQuestions = Array.isArray(quizQuestions) ? quizQuestions.length : 0;
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">{mockSummary.title}</h1>
+            <h1 className="text-3xl font-bold mb-2">{summary.title}</h1>
             <p className="text-muted-foreground">
-              {mockSummary.sections.length} sections •{" "}
-              {mockSummary.totalQuestions} questions generated
+              {summary.sections?.length || 1} section{summary.sections?.length !== 1 ? 's' : ''} •{" "}
+              {totalQuestions} questions generated
             </p>
           </div>
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
         </div>
 
         <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
@@ -67,7 +89,7 @@ export default function Summary() {
               <div>
                 <p className="text-sm opacity-90 mb-1">Ready to test your knowledge?</p>
                 <p className="text-2xl font-bold">
-                  {mockSummary.totalQuestions} Questions Available
+                  {totalQuestions} Questions Available
                 </p>
               </div>
               <Button
@@ -85,7 +107,7 @@ export default function Summary() {
 
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Content Summary</h2>
-          {mockSummary.sections.map((section) => {
+          {summary.sections.map((section: any) => {
             const isExpanded = expandedSections.includes(section.id);
             return (
               <Card
@@ -107,16 +129,18 @@ export default function Summary() {
                 </CardHeader>
                 {isExpanded && (
                   <CardContent className="space-y-4 animate-in slide-in-from-top-2">
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                       {section.content}
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                      {section.keywords.map((keyword) => (
-                        <Badge key={keyword} variant="secondary">
-                          {keyword}
-                        </Badge>
-                      ))}
-                    </div>
+                    {section.keywords && section.keywords.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {section.keywords.map((keyword: string) => (
+                          <Badge key={keyword} variant="secondary">
+                            {keyword}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 )}
               </Card>

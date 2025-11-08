@@ -1,74 +1,80 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, XCircle, AlertCircle } from "lucide-react";
-
-// Mock data - replace with actual API data
-const mockQuestions = [
-  {
-    id: 1,
-    question: "What is the primary characteristic of supervised learning?",
-    options: [
-      "It uses labeled training data",
-      "It discovers hidden patterns without labels",
-      "It only works with numerical data",
-      "It requires no training phase",
-    ],
-    correctAnswer: 0,
-    difficulty: "easy" as const,
-    explanation:
-      "Supervised learning uses labeled data where both input and output are known during training, allowing the model to learn the mapping between them.",
-    topic: "Supervised Learning",
-  },
-  {
-    id: 2,
-    question: "Which component is fundamental to neural networks?",
-    options: [
-      "Decision trees",
-      "Interconnected neurons",
-      "Linear regression",
-      "Rule-based systems",
-    ],
-    correctAnswer: 1,
-    difficulty: "medium" as const,
-    explanation:
-      "Neural networks are built from interconnected nodes called neurons, organized in layers that process information.",
-    topic: "Neural Networks",
-  },
-  {
-    id: 3,
-    question:
-      "What is the purpose of cross-validation in model evaluation?",
-    options: [
-      "To increase model complexity",
-      "To reduce training time",
-      "To assess generalization to unseen data",
-      "To eliminate all errors",
-    ],
-    correctAnswer: 2,
-    difficulty: "hard" as const,
-    explanation:
-      "Cross-validation helps evaluate how well a model will generalize to independent datasets by testing it on different subsets of the training data.",
-    topic: "Model Evaluation",
-  },
-];
+import { useToast } from "@/hooks/use-toast";
+import { Question } from "@/types";
 
 export default function Quiz() {
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [answers, setAnswers] = useState<(number | null)[]>(
-    Array(mockQuestions.length).fill(null)
-  );
+  const [answers, setAnswers] = useState<(number | null)[]>([]);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const question = mockQuestions[currentQuestion];
+  useEffect(() => {
+    const quizData = sessionStorage.getItem("generatedQuiz");
+    
+    if (!quizData) {
+      toast({
+        title: "No quiz found",
+        description: "Please process a document first.",
+        variant: "destructive",
+      });
+      navigate("/");
+      return;
+    }
+
+    try {
+      const parsedQuiz = JSON.parse(quizData);
+      const quizArray = parsedQuiz.quiz || parsedQuiz;
+      
+      if (!Array.isArray(quizArray) || quizArray.length === 0) {
+        throw new Error("Invalid quiz format");
+      }
+      
+      const formattedQuestions = quizArray.map((q: any, index: number) => ({
+        id: index + 1,
+        question: q.question || q.text,
+        options: q.options || q.choices || [],
+        correctAnswer: typeof q.correctAnswer === 'number' ? q.correctAnswer : (q.correct || 0),
+        difficulty: q.difficulty || "medium",
+        explanation: q.explanation || "No explanation available.",
+        topic: q.topic || "General"
+      }));
+      
+      setQuestions(formattedQuestions);
+      setAnswers(Array(formattedQuestions.length).fill(null));
+    } catch (error) {
+      toast({
+        title: "Error loading quiz",
+        description: "Failed to parse quiz data.",
+        variant: "destructive",
+      });
+      navigate("/");
+    }
+  }, [navigate, toast]);
+
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading quiz...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const question = questions[currentQuestion];
   const isAnswered = selectedAnswer !== null;
   const isCorrect = selectedAnswer === question.correctAnswer;
-  const progress = ((currentQuestion + 1) / mockQuestions.length) * 100;
+  const progress = ((currentQuestion + 1) / questions.length) * 100;
 
   const handleAnswerSelect = (index: number) => {
     if (!showExplanation) {
@@ -81,12 +87,12 @@ export default function Quiz() {
   };
 
   const handleNext = () => {
-    if (currentQuestion < mockQuestions.length - 1) {
+    if (currentQuestion < questions.length - 1) {
       setCurrentQuestion((prev) => prev + 1);
       setSelectedAnswer(answers[currentQuestion + 1]);
       setShowExplanation(answers[currentQuestion + 1] !== null);
     } else {
-      navigate("/results", { state: { answers, questions: mockQuestions } });
+      navigate("/results", { state: { answers, questions } });
     }
   };
 
@@ -110,7 +116,7 @@ export default function Quiz() {
               <Badge variant="outline">{question.topic}</Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Question {currentQuestion + 1} of {mockQuestions.length}
+              Question {currentQuestion + 1} of {questions.length}
             </p>
           </div>
           <Progress value={progress} className="h-2" />
@@ -189,7 +195,7 @@ export default function Quiz() {
             disabled={!isAnswered}
             className="flex-1"
           >
-            {currentQuestion === mockQuestions.length - 1
+            {currentQuestion === questions.length - 1
               ? "View Results"
               : "Next Question"}
           </Button>
