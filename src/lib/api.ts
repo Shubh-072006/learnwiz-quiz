@@ -1,64 +1,56 @@
 import { UploadResponse, ProcessingStatus, GeneratedContent } from "@/types";
 
-// TODO: Replace these with your actual backend API endpoints
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export const api = {
   /**
-   * Upload a PDF file for processing
+   * Generate a summary from text
    */
-  uploadDocument: async (file: File): Promise<UploadResponse> => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await fetch(`${API_BASE_URL}/upload`, {
+  generateSummary: async (text: string): Promise<{ summary: string }> => {
+    const response = await fetch(`${API_BASE_URL}/api/summarize`, {
       method: "POST",
-      body: formData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text }),
     });
 
     if (!response.ok) {
-      throw new Error("Upload failed");
+      throw new Error("Failed to generate summary");
     }
 
     return response.json();
   },
 
   /**
-   * Check the processing status of a document
+   * Generate a quiz from text
    */
-  getProcessingStatus: async (documentId: string): Promise<ProcessingStatus> => {
-    const response = await fetch(`${API_BASE_URL}/status/${documentId}`);
+  generateQuiz: async (text: string): Promise<{ quiz: any }> => {
+    const response = await fetch(`${API_BASE_URL}/api/quiz`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text }),
+    });
 
     if (!response.ok) {
-      throw new Error("Failed to get processing status");
+      throw new Error("Failed to generate quiz");
     }
 
     return response.json();
   },
 
   /**
-   * Get the generated summary and questions for a document
+   * Test backend connection
    */
-  getGeneratedContent: async (documentId: string): Promise<GeneratedContent> => {
-    const response = await fetch(`${API_BASE_URL}/content/${documentId}`);
+  testConnection: async (): Promise<{ message: string }> => {
+    const response = await fetch(`${API_BASE_URL}/`);
 
     if (!response.ok) {
-      throw new Error("Failed to get generated content");
+      throw new Error("Backend connection failed");
     }
 
     return response.json();
-  },
-
-  /**
-   * Export results as PDF
-   */
-  exportResults: async (documentId: string, format: "pdf" | "json" = "pdf"): Promise<Blob> => {
-    const response = await fetch(`${API_BASE_URL}/export/${documentId}?format=${format}`);
-
-    if (!response.ok) {
-      throw new Error("Failed to export results");
-    }
-
-    return response.blob();
   },
 };
