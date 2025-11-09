@@ -1,56 +1,33 @@
-import { UploadResponse, ProcessingStatus, GeneratedContent } from "@/types";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+import { supabase } from "@/integrations/supabase/client";
 
 export const api = {
   /**
    * Generate a summary from text
    */
   generateSummary: async (text: string): Promise<{ summary: string }> => {
-    const response = await fetch(`${API_BASE_URL}/api/summarize`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text }),
+    const { data, error } = await supabase.functions.invoke('summarize', {
+      body: { text }
     });
 
-    if (!response.ok) {
-      throw new Error("Failed to generate summary");
+    if (error) {
+      throw new Error(error.message || "Failed to generate summary");
     }
 
-    return response.json();
+    return data;
   },
 
   /**
    * Generate a quiz from text
    */
   generateQuiz: async (text: string): Promise<{ quiz: any }> => {
-    const response = await fetch(`${API_BASE_URL}/api/quiz`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text }),
+    const { data, error } = await supabase.functions.invoke('quiz', {
+      body: { text }
     });
 
-    if (!response.ok) {
-      throw new Error("Failed to generate quiz");
+    if (error) {
+      throw new Error(error.message || "Failed to generate quiz");
     }
 
-    return response.json();
-  },
-
-  /**
-   * Test backend connection
-   */
-  testConnection: async (): Promise<{ message: string }> => {
-    const response = await fetch(`${API_BASE_URL}/`);
-
-    if (!response.ok) {
-      throw new Error("Backend connection failed");
-    }
-
-    return response.json();
+    return data;
   },
 };
